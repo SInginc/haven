@@ -9,8 +9,7 @@
   and
   [`read_xpt()`](https://haven.tidyverse.org/dev/reference/read_xpt.md)
   now attach file metadata as attributes: `creation_timestamp` and
-  `modified_timestamp` (as POSIXct, in UTC) and, where recorded in the
-  file, `encoding`
+  `modified_timestamp` (as POSIXct, in UTC)
   ([\#733](https://github.com/tidyverse/haven/issues/733),
   [@SInginc](https://github.com/SInginc)).
 
