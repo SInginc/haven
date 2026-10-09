@@ -1,0 +1,229 @@
+# Read and write SPSS files
+
+`read_sav()` reads both `.sav` and `.zsav` files; `write_sav()` creates
+`.zsav` files when `compress = TRUE`. `read_por()` reads `.por` files.
+`read_spss()` uses either `read_por()` or `read_sav()` based on the file
+extension.
+
+## Usage
+
+``` r
+read_sav(
+  file,
+  encoding = NULL,
+  user_na = FALSE,
+  col_select = NULL,
+  skip = 0,
+  n_max = Inf,
+  .name_repair = "unique"
+)
+
+read_por(
+  file,
+  user_na = FALSE,
+  col_select = NULL,
+  skip = 0,
+  n_max = Inf,
+  .name_repair = "unique"
+)
+
+write_sav(data, path, compress = c("byte", "none", "zsav"), adjust_tz = TRUE)
+
+read_spss(
+  file,
+  user_na = FALSE,
+  col_select = NULL,
+  skip = 0,
+  n_max = Inf,
+  .name_repair = "unique"
+)
+```
+
+## Arguments
+
+- file:
+
+  Either a path to a file, a connection, or literal data (either a
+  single string or a raw vector).
+
+  Files ending in `.gz`, `.bz2`, `.xz`, or `.zip` will be automatically
+  uncompressed. Files starting with `http://`, `https://`, `ftp://`, or
+  `ftps://` will be automatically downloaded. Remote `.gz` files can
+  also be automatically downloaded and decompressed.
+
+  Literal data is most useful for examples and tests. To be recognised
+  as literal data, wrap the input with
+  [`I()`](https://rdrr.io/r/base/AsIs.html).
+
+  Using a value of
+  [`clipboard()`](https://readr.tidyverse.org/reference/clipboard.html)
+  will read from the system clipboard.
+
+- encoding:
+
+  The character encoding used for the file. The default, `NULL`, use the
+  encoding specified in the file, but sometimes this value is incorrect
+  and it is useful to be able to override it.
+
+- user_na:
+
+  If `TRUE` variables with user defined missing will be read into
+  [`labelled_spss()`](https://haven.tidyverse.org/dev/reference/labelled_spss.md)
+  objects. If `FALSE`, the default, user-defined missings will be
+  converted to `NA`.
+
+- col_select:
+
+  Columns to include in the results. You can use the same mini-language
+  as `dplyr::select()` to refer to the columns by name. Use
+  [`c()`](https://rdrr.io/r/base/c.html) to use more than one selection
+  expression. Although this usage is less common, `col_select` also
+  accepts a numeric column index. See
+  [`?tidyselect::language`](https://tidyselect.r-lib.org/reference/language.html)
+  for full details on the selection language.
+
+  Predicates using
+  [`where()`](https://tidyselect.r-lib.org/reference/where.html) are not
+  supported.
+
+- skip:
+
+  Number of lines to skip before reading data.
+
+- n_max:
+
+  Maximum number of lines to read.
+
+- .name_repair:
+
+  Treatment of problematic column names:
+
+  - `"minimal"`: No name repair or checks, beyond basic existence,
+
+  - `"unique"`: Make sure names are unique and not empty,
+
+  - `"check_unique"`: (default value), no name repair, but check they
+    are `unique`,
+
+  - `"universal"`: Make the names `unique` and syntactic
+
+  - `"unique_quiet"`: Same as `"unique"`, but "quiet"
+
+  - `"universal_quiet"`: Same as `"universal"`, but "quiet"
+
+  - a function: apply custom name repair (e.g.,
+    `.name_repair = make.names` for names in the style of base R).
+
+  - A purrr-style anonymous function, see
+    [`rlang::as_function()`](https://rlang.r-lib.org/reference/as_function.html)
+
+  This argument is passed on as `repair` to
+  [`vctrs::vec_as_names()`](https://vctrs.r-lib.org/reference/vec_as_names.html).
+  See there for more details on these terms and the strategies used to
+  enforce them.
+
+- data:
+
+  Data frame to write.
+
+- path:
+
+  Path to a file where the data will be written.
+
+- compress:
+
+  Compression type to use:
+
+  - "byte": the default, uses byte compression.
+
+  - "none": no compression. This is useful for software that has issues
+    with byte compressed `.sav` files (e.g. SAS).
+
+  - "zsav": uses zlib compression and produces a `.zsav` file. zlib
+    compression is supported by SPSS version 21.0 and above.
+
+  `TRUE` and `FALSE` can be used for backwards compatibility, and
+  correspond to the "zsav" and "none" options respectively.
+
+- adjust_tz:
+
+  Stata, SPSS and SAS do not have a concept of time zone, and all
+  [date-time](https://rdrr.io/r/base/DateTimeClasses.html) variables are
+  treated as UTC. `adjust_tz` controls how the timezone of date-time
+  values is treated when writing.
+
+  - If `TRUE` (the default) the timezone of date-time values is ignored,
+    and they will display the same in R and Stata/SPSS/SAS, e.g.
+    `"2010-01-01 09:00:00 NZDT"` will be written as
+    `"2010-01-01 09:00:00"`. Note that this changes the underlying
+    numeric data, so use caution if preserving between-time-point
+    differences is critical.
+
+  - If `FALSE`, date-time values are written as the corresponding UTC
+    value, e.g. `"2010-01-01 09:00:00 NZDT"` will be written as
+    `"2009-12-31 20:00:00"`.
+
+## Value
+
+A tibble, data frame variant with nice defaults.
+
+Variable labels are stored in the "label" attribute of each variable. It
+is not printed on the console, but the RStudio viewer will show it.
+
+Value labels are preserved with the
+[`labelled()`](https://haven.tidyverse.org/dev/reference/labelled.md)
+class. Labelled vectors are an intermediate representation that
+preserves the original value labels, not a regular R factor. Convert
+labelled categorical variables with
+[`as_factor()`](https://haven.tidyverse.org/dev/reference/as_factor.md),
+or remove value labels with
+[`zap_labels()`](https://haven.tidyverse.org/dev/reference/zap_labels.md)
+if you need plain R vectors for analysis. See
+[`vignette("semantics")`](https://haven.tidyverse.org/dev/articles/semantics.md)
+for more details.
+
+## Details
+
+Currently haven can read and write logical, integer, numeric, character
+and factors. See
+[`labelled_spss()`](https://haven.tidyverse.org/dev/reference/labelled_spss.md)
+for how labelled variables in SPSS are handled in R.
+
+## Examples
+
+``` r
+path <- system.file("examples", "iris.sav", package = "haven")
+read_sav(path)
+#> # A tibble: 150 × 5
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species   
+#>           <dbl>       <dbl>        <dbl>       <dbl> <dbl+lbl> 
+#>  1          5.1         3.5          1.4         0.2 1 [setosa]
+#>  2          4.9         3            1.4         0.2 1 [setosa]
+#>  3          4.7         3.2          1.3         0.2 1 [setosa]
+#>  4          4.6         3.1          1.5         0.2 1 [setosa]
+#>  5          5           3.6          1.4         0.2 1 [setosa]
+#>  6          5.4         3.9          1.7         0.4 1 [setosa]
+#>  7          4.6         3.4          1.4         0.3 1 [setosa]
+#>  8          5           3.4          1.5         0.2 1 [setosa]
+#>  9          4.4         2.9          1.4         0.2 1 [setosa]
+#> 10          4.9         3.1          1.5         0.1 1 [setosa]
+#> # ℹ 140 more rows
+
+tmp <- tempfile(fileext = ".sav")
+write_sav(mtcars, tmp)
+read_sav(tmp)
+#> # A tibble: 32 × 11
+#>      mpg   cyl  disp    hp  drat    wt  qsec    vs    am  gear  carb
+#>    <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
+#>  1  21       6  160    110  3.9   2.62  16.5     0     1     4     4
+#>  2  21       6  160    110  3.9   2.88  17.0     0     1     4     4
+#>  3  22.8     4  108     93  3.85  2.32  18.6     1     1     4     1
+#>  4  21.4     6  258    110  3.08  3.22  19.4     1     0     3     1
+#>  5  18.7     8  360    175  3.15  3.44  17.0     0     0     3     2
+#>  6  18.1     6  225    105  2.76  3.46  20.2     1     0     3     1
+#>  7  14.3     8  360    245  3.21  3.57  15.8     0     0     3     4
+#>  8  24.4     4  147.    62  3.69  3.19  20       1     0     4     2
+#>  9  22.8     4  141.    95  3.92  3.15  22.9     1     0     4     2
+#> 10  19.2     6  168.   123  3.92  3.44  18.3     1     0     4     4
+#> # ℹ 22 more rows
+```
